@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id             String        @id @default(cuid())
+  firstname      String
+  lastname       String
+  email          String?
+  phone          String
+  personalnumber String        @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  appointments   Appointment[]
+  prescriptions Prescription[]
+  @@map("customer")
+}
+
+model Appointment {
+  id         Int           @id @default(autoincrement())
+  customerId String
+  note       String?
+  isAdult    Boolean       @default(true)
+  isGlasses  Boolean       @default(true)
+  status     BookingStatus @default(CONFIRMED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  customer   Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  timeSlots  TimeSlot[]
+
+  @@map("appointment")
+}
+
+model TimeSlot {
+  id            Int          @id @default(autoincrement())
+  eventId       Int?
+  startTime     DateTime     @db.Timestamptz(6)
+  endTime       DateTime     @db.Timestamptz(6)
+  isAvailable   Boolean      @default(true)
+  appointmentId Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  event         Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("timeslot")
+}
+
+model Event {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  userID      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  endTime     DateTime   @db.Timestamptz(6)
+  startTime   DateTime   @db.Timestamptz(6)
+  user        User       @relation(fields: [userID], references: [id])
+  timeSlot    TimeSlot[]
+
+  @@map("event")
+}
+
+model User {
+  id            String    @id
+  email         String    @unique
+  name          String?
+  emailVerified Boolean
+  image         String?
+  userName      String?   @unique
+  createdAt     DateTime
+  updatedAt     DateTime
+  accounts      Account[]
+  events        Event[]
+  sessions      Session[]
+
+  admin         Admin?    @relation("UserAdmin") 
+  @@map("user")
+}
+
+model Admin {
+  userId  String @id
+  isAdmin Boolean @default(true)
+  user    User   @relation("UserAdmin", fields: [userId], references: [id])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model ShopContactInfo {
+  id         String   @id @default(cuid())
+  address    String   @default("Östermalmsvägen 6")
+  city       String
+  postalCode String
+  phone1     String
+  phone2     String?  // optional
+  email      String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("shopcontactinfo")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String   @unique
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+
+model Prescription {
+  id Int @default(autoincrement()) @id
+  prevGlassLeft Float?
+  prevGlassRight Float?
+  currentSymptoms String
+  leftPD Float?
+  rightPD Float?
+  uncorrectedVisualLeft Float?
+  uncorrectedVisualRight Float?
+  correctedVisualLeft Float?
+  correctedVisualRight Float?
+  lensPowerLeft Float?
+  lensPowerRight Float?
+  cylinderLeft Float?
+  cylinderRight Float?
+  axisLeft Float?
+  axisRight Float?
+  addLeft Float?
+  addRight Float?
+  noseHeightLeft Float?
+  noseHeightRight Float?
+  glassTypeLeft String?
+  glassTypeRight String?
+  frameDistance Float?
+  nearFrameDistance Float?
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@map("prescription")
+}
+
